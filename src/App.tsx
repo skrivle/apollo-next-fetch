@@ -1,7 +1,5 @@
 import { ApolloClient, gql, useQuery, InMemoryCache, ApolloProvider } from '@apollo/client';
 import { BatchHttpLink } from '@apollo/client/link/batch-http';
-import { setupWorker } from 'msw';
-import { rest } from 'msw';
 import { useState } from 'react';
 
 const QUERY_1 = gql`
@@ -15,21 +13,15 @@ const QUERY_1 = gql`
     }
 `;
 
-const useData = ({ contactId }: any) => {
-    const res = useQuery(QUERY_1, {
+const ConversationHistory = ({ contactId }: any) => {
+    const { error, data, loading } = useQuery(QUERY_1, {
         fetchPolicy: 'network-only',
-        nextFetchPolicy: 'cache-first',
+        nextFetchPolicy: 'cache-first', // comment this line to make the test pass
         variables: {
             contactId,
             limit: 50,
         },
     });
-
-    return res;
-};
-
-const ConversationHistory = ({ contactId }: any) => {
-    const { error, data, loading } = useData({ contactId });
 
     if (error) {
         return <div>error</div>;
@@ -38,8 +30,6 @@ const ConversationHistory = ({ contactId }: any) => {
     if (loading) {
         return <div>Loading...</div>;
     }
-
-    console.log(data.conversationHistory.conversations);
 
     return (
         <>
@@ -63,57 +53,6 @@ const App = () => {
         </div>
     );
 };
-
-export const handlers = [
-    rest.post('/graphql', async (req: any, res, ctx) => {
-        const id = req.body[0].variables.contactId;
-        console.log('server hit');
-
-        if (id === 'contact1') {
-            return res(
-                ctx.delay(2500),
-                ctx.json({
-                    data: {
-                        conversationHistory: {
-                            conversations: [
-                                {
-                                    id: '1',
-                                    content: 'blabla',
-                                    testProp: true,
-                                    __typename: 'Conversation',
-                                },
-                            ],
-                            __typename: 'ConversationHistory',
-                        },
-                    },
-                })
-            );
-        }
-
-        if (id === 'contact2') {
-            return res(
-                ctx.delay(2500),
-                ctx.json({
-                    data: {
-                        conversationHistory: {
-                            conversations: [
-                                {
-                                    id: '1',
-                                    content: 'nonono',
-                                    testProp: false,
-                                    __typename: 'Conversation',
-                                },
-                            ],
-                            __typename: 'ConversationHistory',
-                        },
-                    },
-                })
-            );
-        }
-    }),
-];
-
-export const server = setupWorker(...handlers);
 
 const apolloClient = new ApolloClient({
     link: new BatchHttpLink({

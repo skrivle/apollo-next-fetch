@@ -1,15 +1,19 @@
 import React from 'react';
-import {render} from 'react-dom';
+import { render } from 'react-dom';
 import './index.css';
-import App, { server } from './App';
+import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { setupWorker } from 'msw';
+import { handlers } from './handlers';
 
+const server = setupWorker(...handlers);
 server.start();
 
 render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,document.getElementById('root') as HTMLElement
+    <React.StrictMode>
+        <App />
+    </React.StrictMode>,
+    document.getElementById('root') as HTMLElement
 );
 
 // If you want to start measuring performance in your app, pass a function
