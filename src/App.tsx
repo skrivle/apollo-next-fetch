@@ -4,7 +4,6 @@ import { setupWorker } from 'msw';
 import { rest } from 'msw';
 import { useState } from 'react';
 
-
 const QUERY_1 = gql`
     query ConversationHistory($contactId: ID!, $limit: Int!) {
         conversationHistory(contactId: $contactId, limit: $limit) {
@@ -16,35 +15,31 @@ const QUERY_1 = gql`
     }
 `;
 
-const useData = ({contactId}: any) => {
+const useData = ({ contactId }: any) => {
     const res = useQuery(QUERY_1, {
         fetchPolicy: 'network-only',
         nextFetchPolicy: 'cache-first',
         variables: {
             contactId,
-            limit: 50
-        }
+            limit: 50,
+        },
     });
 
     return res;
-}
+};
 
-const ConversationHistory = ({contactId}: any) => {
-    
-    const {error, data, loading} = useData({contactId});
-    
+const ConversationHistory = ({ contactId }: any) => {
+    const { error, data, loading } = useData({ contactId });
+
     if (error) {
-        return <div>error</div>   
+        return <div>error</div>;
     }
 
     if (loading) {
-        return <div>Loading...</div>
+        return <div>Loading...</div>;
     }
 
-    
-
-    console.log(data.conversationHistory.conversations)
-    
+    console.log(data.conversationHistory.conversations);
 
     return (
         <>
@@ -56,9 +51,8 @@ const ConversationHistory = ({contactId}: any) => {
 };
 
 const App = () => {
-
     const [selectedContact, setSelectedContact] = useState<null | string>(null);
-    
+
     return (
         <div>
             <button onClick={() => setSelectedContact('contact1')}>contact1</button>
@@ -67,86 +61,73 @@ const App = () => {
 
             {selectedContact && <ConversationHistory contactId={selectedContact} />}
         </div>
-    )
-}
+    );
+};
 
-export const server = setupWorker(
-  rest.post('/graphql', async (req: any, res, ctx) => {
-    const id = req.body[0].variables.contactId;
-    console.log('server hit')
+export const handlers = [
+    rest.post('/graphql', async (req: any, res, ctx) => {
+        const id = req.body[0].variables.contactId;
+        console.log('server hit');
 
-    if (id === 'contact1') {
-        return res(ctx.delay(2500), ctx.json({
-            data: {
-                conversationHistory: {
-                    conversations: [
-                        {id: '1', content: 'blabla', testProp: true, __typename: "Conversation"}
-                    ],
-                    __typename: "ConversationHistory",
-                }
-        }}));
-    }
+        if (id === 'contact1') {
+            return res(
+                ctx.delay(2500),
+                ctx.json({
+                    data: {
+                        conversationHistory: {
+                            conversations: [
+                                {
+                                    id: '1',
+                                    content: 'blabla',
+                                    testProp: true,
+                                    __typename: 'Conversation',
+                                },
+                            ],
+                            __typename: 'ConversationHistory',
+                        },
+                    },
+                })
+            );
+        }
 
-    if (id === 'contact2') {
-        return res(ctx.delay(2500), ctx.json({
-            data: {
-                conversationHistory: {
-                    conversations: [
-                        {id: '1', content: 'nonono', testProp: false, __typename: "Conversation"}
-                    ],
-                    __typename: "ConversationHistory",
-                }
-        }}));
-    }
+        if (id === 'contact2') {
+            return res(
+                ctx.delay(2500),
+                ctx.json({
+                    data: {
+                        conversationHistory: {
+                            conversations: [
+                                {
+                                    id: '1',
+                                    content: 'nonono',
+                                    testProp: false,
+                                    __typename: 'Conversation',
+                                },
+                            ],
+                            __typename: 'ConversationHistory',
+                        },
+                    },
+                })
+            );
+        }
+    }),
+];
 
-})
-);
+export const server = setupWorker(...handlers);
 
-
-
-
-
-    const apolloClient = new ApolloClient({
-      link: new BatchHttpLink({
+const apolloClient = new ApolloClient({
+    link: new BatchHttpLink({
         uri: '/graphql',
-      }),
-      cache: new InMemoryCache({
-        // typePolicies: {
-        //     Query: {
-        //         fields: {
-        //             conversationHistory: {
-        //                 keyArgs: ['contactId']
-        //             }
-        //         }
-        //     },
-        //     Conversation: {
-        //         fields: {
-        //             content: {merge: true}
-        //         }
-        //     }
-        // }
-      }),
-    });
-
-
-
-    
-
-    
-
-    
-
-
-    
-
-    
-
-
+    }),
+    cache: new InMemoryCache(),
+});
 
 function Root() {
-  return (
-    <ApolloProvider client={apolloClient}><App /></ApolloProvider>
-  );
+    return (
+        <ApolloProvider client={apolloClient}>
+            <App />
+        </ApolloProvider>
+    );
 }
 
 export default Root;
